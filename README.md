@@ -1,5 +1,7 @@
 # 📡 ESP8266 & HTU21D Weather Station with ThingSpeak Integration
 
+[![CodeFactor](https://www.codefactor.io/repository/github/cyberscopetoday/esp8266-htu21d-weather-station/badge)](https://www.codefactor.io/repository/github/cyberscopetoday/esp8266-htu21d-weather-station)
+
 Measure temperature 🌡️ and humidity 💧 using an ESP8266 microcontroller and an HTU21D sensor, then send the data to ThingSpeak every 15 minutes while conserving power using deep sleep mode 😴.
 
 ## 📋 Table of Contents
