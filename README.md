@@ -5,6 +5,8 @@
 
 This project is an **autonomous outdoor weather station** built around the **ESP8266 (ESP-12E)** microcontroller. It measures **temperature, humidity, illuminance (lux), dew point, and heat index**, then sends the data to **ThingSpeak** every **15 minutes**.
 
+<img src="https://github.com/user-attachments/assets/0162a89f-50ed-4318-9e45-7583b01ef3d8" width="200">
+
 **⚡️ Key Highlights**  
 - Solar-powered (using TP4057 and a LiPo 2000 mAh battery)  
 - Deep Sleep for energy efficiency (15 minutes)  
