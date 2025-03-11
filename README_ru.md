@@ -167,6 +167,10 @@ SCL -> GPIO5 (D1) [совместно с HTU21D]
 
 ```cpp
 
+// Wi-Fi настройки
+#define STASSID "Точка"
+#define STAPSK  "Пароль"
+
 // ThingSpeak API
 const char* apiKey = "your_thingspeak_api_key";
 const char* server = "api.thingspeak.com";
