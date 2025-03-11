@@ -1,70 +1,80 @@
-#include <ESP8266WiFi.h>
-#include <ThingSpeak.h>
+ #include <ESP8266WiFi.h>
 #include <Wire.h>
-#include <SparkFunHTU21D.h>
+#include <Adafruit_HTU21DF.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_TSL2561_U.h>
+#include <ESP8266HTTPClient.h>
 
-HTU21D myHTU21D;
+// Wi-Fi settings
+#define STASSID "your_wifi_ssid"
+#define STAPSK  "your_wifi_password"
 
-const char* ssid = "YOUR_SSID";         // 🔐 Your Wi-Fi SSID
-const char* password = "YOUR_PASSWORD"; // 🔑 Your Wi-Fi Password
+// ThingSpeak API
+const char* apiKey = "your_thingspeak_api_key";
+const char* server = "api.thingspeak.com";
 
-unsigned long myChannelNumber = YOUR_CHANNEL_NUMBER; // 🆔 Your ThingSpeak Channel ID
-const char* myWriteAPIKey = "YOUR_WRITE_API_KEY";    // 📝 Your ThingSpeak Write API Key
+// Sleep time (15 minutes)
+#define SLEEP_TIME 900e6
 
-WiFiClient client;
+Adafruit_HTU21DF htu = Adafruit_HTU21DF();
+Adafruit_TSL2561_Unified tsl = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
+
+float calculateDewPoint(float temp, float hum) {
+  float a = 17.27, b = 237.7;
+  float alpha = ((a * temp) / (b + temp)) + log(hum / 100);
+  return (b * alpha) / (a - alpha);
+}
+
+float calculateHeatIndex(float temp, float hum) {
+  return -8.7847 + 1.6114 * temp + 2.3385 * hum - 0.1461 * temp * hum + 
+         -0.0123 * temp * temp - 0.0164 * hum * hum + 0.0022 * temp * temp * hum + 
+         0.0007 * temp * hum * hum - 0.0000036 * temp * temp * hum * hum;
+}
 
 void setup() {
   Serial.begin(115200);
-  delay(100);
-
-  // 🛠️ Initialize the sensor
   Wire.begin();
-  myHTU21D.begin();
 
-  // 📶 Connect to Wi-Fi
-  WiFi.begin(ssid, password);
-  Serial.println("Connecting to Wi-Fi...");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("\nConnected to Wi-Fi");
-
-  // 🌐 Initialize ThingSpeak
-  ThingSpeak.begin(client);
-
-  // 🌡️💧 Read data from the sensor
-  float humidity = myHTU21D.readHumidity();
-  float temperature = myHTU21D.readTemperature();
-
-  Serial.print("Temperature: ");
-  Serial.print(temperature);
-  Serial.println(" *C");
-
-  Serial.print("Humidity: ");
-  Serial.print(humidity);
-  Serial.println(" %");
-
-  // 📤 Send data to ThingSpeak
-  ThingSpeak.setField(1, temperature);
-  ThingSpeak.setField(2, humidity);
-
-  int x = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-  if (x == 200) {
-    Serial.println("Data successfully sent to ThingSpeak");
-  } else {
-    Serial.println("Error sending data: " + String(x));
+  if (!htu.begin()) {
+    Serial.println("Couldn't find HTU21 sensor!");
+    ESP.deepSleep(SLEEP_TIME);
   }
 
-  // 📴 Disconnect Wi-Fi to save power
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
+  if (!tsl.begin()) {
+    Serial.println("Couldn't find TSL2561 sensor!");
+    ESP.deepSleep(SLEEP_TIME);
+  }
 
-  // 😴 Enter deep sleep for 15 minutes
-  Serial.println("Entering deep sleep for 15 minutes");
-  ESP.deepSleep(15 * 60 * 1000000); // Time in microseconds
+  tsl.setGain(TSL2561_GAIN_1X);
+  tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_13MS);
+
+  WiFi.begin(STASSID, STAPSK);
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+
+  float temp = htu.readTemperature();
+  float hum = htu.readHumidity();
+  sensors_event_t event;
+  tsl.getEvent(&event);
+  float lux = event.light ? event.light : 0.0;
+  float dewPoint = calculateDewPoint(temp, hum);
+  float heatIndex = calculateHeatIndex(temp, hum);
+
+  Serial.printf("Temp: %.2f°C | Hum: %.2f%% | Lux: %.2f | Dew Point: %.2f°C | Heat Index: %.2f°C\n",
+                temp, hum, lux, dewPoint, heatIndex);
+
+  WiFiClient client;
+  HTTPClient http;
+  String url = String("http://") + server + "/update?api_key=" + apiKey +
+               "&field1=" + String(temp) + "&field2=" + String(hum) +
+               "&field3=" + String(lux) + "&field4=" + String(dewPoint) +
+               "&field5=" + String(heatIndex);
+
+  http.begin(client, url);
+  http.GET();
+  http.end();
+
+  Serial.println("Deep Sleep...");
+  ESP.deepSleep(SLEEP_TIME);
 }
 
-void loop() {
-  // The ESP8266 will restart after deep sleep
-}
+void loop() {}
