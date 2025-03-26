@@ -197,4 +197,4 @@ const char* server = "api.thingspeak.com";
 ## 📜 License
 This project is released under the **MIT License**. Feel free to use, modify, and distribute!
 
-If you have any questions or suggestions, open an [Issue](https://github.com/CyberScopeToday/ESP8266-HTU21D-Weather-Station/issues).
+If you have any questions or suggestions, open an [Issue](https://github.com/CyberScoper/ESP8266-HTU21D-Weather-Station/issues).
